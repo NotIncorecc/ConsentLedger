@@ -3,7 +3,7 @@ import { useWallet } from '@txnlab/use-wallet-react'
 import { AlgorandClient } from '@algorandfoundation/algokit-utils'
 import { ConsentLedgerClient } from '../contracts/ConsentLedgerClient'
 import { CONFIG } from '../config'
-import { decodeConsentRecord, consentBoxName, formatExpiry } from '../utils'
+import { decodeConsentRecord, consentBoxName, parseConsentBoxName, formatExpiry } from '../utils'
 import type { ConsentRecord } from '../utils'
 
 interface ConsentItem {
@@ -33,45 +33,36 @@ export function ActiveConsents() {
     try {
       const algorand = AlgorandClient.testNet()
       const algod = algorand.client.algod
+      const appId = Number(CONFIG.APP_ID)
 
-      // 1. Get all ASAs held by the wallet
-      const acctInfo = await algod.accountInformation(activeAddress).do()
-      const heldAssets = acctInfo.assets ?? []
-
-      if (heldAssets.length === 0) { setItems([]); return }
-
-      // 2. Filter to those created by the ConsentLedger app address
-      const appAddr = CONFIG.APP_ADDRESS
+      // Enumerate all app boxes and filter those owned by activeAddress
+      const boxesResp = await algod.getApplicationBoxes(appId).do()
+      const boxes = boxesResp.boxes ?? []
 
       const results: ConsentItem[] = []
-      for (const held of heldAssets) {
-        const assetId = held.assetId
-        // Fetch ASA info to check creator
+      for (const box of boxes) {
+        const parsed = parseConsentBoxName(box.name)
+        if (!parsed || parsed.owner !== activeAddress) continue
+
+        let record: ConsentRecord
         try {
-          const assetInfo = await algod.getAssetByID(Number(assetId)).do()
-          if (assetInfo.params.creator !== appAddr) continue
+          const boxData = await algod.getApplicationBoxByName(appId, box.name).do()
+          record = decodeConsentRecord(boxData.value)
         } catch {
           continue
         }
 
-        // Read box data
-        const boxKey = consentBoxName(assetId)
-        let record: ConsentRecord
+        let frozen = false
         try {
-          const boxResult = await algod
-            .getApplicationBoxByName(Number(CONFIG.APP_ID), boxKey)
+          const holding = await algod
+            .accountAssetInformation(CONFIG.APP_ADDRESS, Number(record.assetId))
             .do()
-          record = decodeConsentRecord(boxResult.value)
+          frozen = holding.assetHolding?.isFrozen ?? false
         } catch {
-          continue // box not found — skip
+          // asset not yet opted-in or other error — treat as active
         }
 
-        results.push({
-          assetId,
-          record,
-          frozen: held.isFrozen,
-          revoking: false,
-        })
+        results.push({ assetId: record.assetId, record, frozen, revoking: false })
       }
       setItems(results)
     } catch (err: unknown) {
@@ -83,13 +74,16 @@ export function ActiveConsents() {
 
   useEffect(() => { load() }, [load])
 
-  const handleRevoke = async (assetId: bigint) => {
+  const handleRevoke = async (requester: string) => {
     if (!activeAddress || !transactionSigner) {
       await peraWallet?.connect()
       return
     }
+    const item = items.find((i) => i.record.requester === requester)
+    if (!item) return
+
     setItems((prev) =>
-      prev.map((item) => (item.assetId === assetId ? { ...item, revoking: true } : item))
+      prev.map((i) => (i.record.requester === requester ? { ...i, revoking: true } : i))
     )
     try {
       const algorand = AlgorandClient.testNet()
@@ -100,27 +94,26 @@ export function ActiveConsents() {
         defaultSender: activeAddress,
       })
 
-      // Build box reference key
-      const boxKey = consentBoxName(assetId)
+      const boxKey = consentBoxName(activeAddress, requester)
 
       const response = await client.send.revokeConsent({
-        args: { assetId },
+        args: { requester },
         extraFee: (1_000).microAlgo(),
         boxReferences: [{ appId: CONFIG.APP_ID, name: boxKey }],
-        assetReferences: [assetId],
+        assetReferences: [item.assetId],
         accountReferences: [CONFIG.APP_ADDRESS],
       })
 
       setItems((prev) =>
-        prev.map((item) =>
-          item.assetId === assetId
-            ? { ...item, frozen: true, revoking: false, revokeTxId: response.txIds[0] }
-            : item
+        prev.map((i) =>
+          i.record.requester === requester
+            ? { ...i, frozen: true, revoking: false, revokeTxId: response.txIds[0] }
+            : i
         )
       )
     } catch (err: unknown) {
       setItems((prev) =>
-        prev.map((item) => (item.assetId === assetId ? { ...item, revoking: false } : item))
+        prev.map((i) => (i.record.requester === requester ? { ...i, revoking: false } : i))
       )
       setError(err instanceof Error ? err.message : String(err))
     }
@@ -147,7 +140,7 @@ export function ActiveConsents() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold">My Consent Tokens</h2>
-          <p className="text-gray-500 text-sm">On-chain consent tokens held by your wallet on LocalNet</p>
+          <p className="text-gray-500 text-sm">On-chain consent tokens granted by your wallet</p>
         </div>
         <button
           onClick={load}
@@ -176,7 +169,11 @@ export function ActiveConsents() {
 
       <div className="space-y-3">
         {items.map((item) => (
-          <ConsentCard key={item.assetId.toString()} item={item} onRevoke={handleRevoke} />
+          <ConsentCard
+            key={item.record.requester}
+            item={item}
+            onRevoke={handleRevoke}
+          />
         ))}
       </div>
     </div>
@@ -188,7 +185,7 @@ function ConsentCard({
   onRevoke,
 }: {
   item: ConsentItem
-  onRevoke: (id: bigint) => void
+  onRevoke: (requester: string) => void
 }) {
   const isRevoked = item.frozen
 
@@ -243,7 +240,7 @@ function ConsentCard({
 
         {!isRevoked && (
           <button
-            onClick={() => onRevoke(item.assetId)}
+            onClick={() => onRevoke(item.record.requester)}
             disabled={item.revoking}
             className="shrink-0 px-3 py-1.5 text-sm font-semibold text-red-600 border border-red-300 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors"
           >

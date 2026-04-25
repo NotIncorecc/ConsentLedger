@@ -34,12 +34,12 @@ def deploy() -> None:
     ]:
         algorand.send.payment(
             algokit_utils.PaymentParams(
-                amount=algokit_utils.AlgoAmount(algo=2),
+                amount=algokit_utils.AlgoAmount(algo=1),
                 sender=deployer.address,
                 receiver=app_client.app_address,
             )
         )
-        logger.info(f"Funded app account {app_client.app_address} with 2 ALGO for MBR")
+        logger.info(f"Funded app account {app_client.app_address} with 1 ALGO for MBR")
 
     logger.info(
         f"ConsentLedger deployed: app_id={app_client.app_id}, "

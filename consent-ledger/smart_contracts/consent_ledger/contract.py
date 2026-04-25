@@ -2,6 +2,7 @@ from algopy import (
     ARC4Contract,
     Asset,
     BoxMap,
+    Bytes,
     Global,
     Txn,
     UInt64,
@@ -31,8 +32,9 @@ class ConsentLedger(ARC4Contract):
     """
 
     def __init__(self) -> None:
-        # BoxMap keyed by asset_id (UInt64) → ConsentRecord
-        self.consents = BoxMap(UInt64, ConsentRecord, key_prefix=b"consent_")
+        # BoxMap keyed by owner_bytes(32)||requester_bytes(32) = exactly 64 bytes (AVM max).
+        # key_prefix=b"" prevents Algopy from prepending the field name ("consents") as prefix.
+        self.consents = BoxMap(Bytes, ConsentRecord, key_prefix=b"")
 
     # ------------------------------------------------------------------ #
     # grant_consent                                                        #
@@ -87,7 +89,7 @@ class ConsentLedger(ARC4Contract):
         # Here we just record the fact — the user will be holding the token
         # via the clawback mechanism below.
 
-        # Store the consent record in box storage keyed by asset_id
+        # Store the consent record in box storage keyed by sender||requester (64 bytes)
         record = ConsentRecord(
             owner=arc4.Address(Txn.sender),
             requester=requester,
@@ -96,7 +98,8 @@ class ConsentLedger(ARC4Contract):
             expiry=expiry,
             asset_id=arc4.UInt64(new_asset_id),
         )
-        self.consents[new_asset_id] = record.copy()
+        box_key = Txn.sender.bytes + requester.bytes
+        self.consents[box_key] = record.copy()
 
         return arc4.UInt64(new_asset_id)
 
@@ -105,17 +108,19 @@ class ConsentLedger(ARC4Contract):
     # ------------------------------------------------------------------ #
 
     @abimethod()
-    def revoke_consent(self, asset_id: arc4.UInt64) -> None:
+    def revoke_consent(self, requester: arc4.Address) -> None:
         """
         Freeze the consent ASA to represent on-chain revocation.
 
         Only the original owner of the consent may call this.
         """
-        native_asset_id = asset_id.native
+        box_key = Txn.sender.bytes + requester.bytes
 
         # Load record and verify ownership
-        record = self.consents[native_asset_id].copy()
+        record = self.consents[box_key].copy()
         assert record.owner == arc4.Address(Txn.sender), "Only the owner can revoke consent"
+
+        native_asset_id = record.asset_id.native
 
         # Freeze the app's own holding of the ASA — the app is the creator
         # and holds the total supply. Freezing it marks the consent as revoked.
@@ -133,33 +138,30 @@ class ConsentLedger(ARC4Contract):
     @abimethod(readonly=True)
     def is_consent_valid(
         self,
-        asset_id: arc4.UInt64,
+        owner: arc4.Address,
         requester: arc4.Address,
     ) -> arc4.Bool:
         """
         Read-only verifier: returns True if consent is active and not expired.
 
         Checks:
-        1. A consent record exists for this asset_id.
-        2. The requester matches the record.
-        3. The expiry timestamp has not passed.
-        4. The ASA is not frozen (i.e., not revoked).
+        1. A consent record exists for this owner+requester pair.
+        2. The expiry timestamp has not passed.
+        3. The ASA is not frozen (i.e., not revoked).
         """
-        native_asset_id = asset_id.native
+        box_key = owner.bytes + requester.bytes
 
         # Check record exists
-        if native_asset_id not in self.consents:
+        if box_key not in self.consents:
             return arc4.Bool(False)
 
-        record = self.consents[native_asset_id].copy()
-
-        # Check requester matches
-        if record.requester != requester:
-            return arc4.Bool(False)
+        record = self.consents[box_key].copy()
 
         # Check expiry (0 means no expiry)
         if record.expiry.native != 0 and record.expiry.native < Global.latest_timestamp:
             return arc4.Bool(False)
+
+        native_asset_id = record.asset_id.native
 
         # Check if the app's own holding is frozen (freeze = revoked)
         asset = Asset(native_asset_id)

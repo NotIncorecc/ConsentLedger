@@ -2,16 +2,9 @@ import { useEffect, useState, useCallback } from 'react'
 import { useWallet } from '@txnlab/use-wallet-react'
 import { AlgorandClient } from '@algorandfoundation/algokit-utils'
 import { CONFIG } from '../config'
-import { decodeConsentRecord, formatExpiry, shortAddr } from '../utils'
+import { decodeConsentRecord, parseConsentBoxName, formatExpiry, shortAddr } from '../utils'
 import type { ConsentRecord } from '../utils'
 import type { OrgView } from '../App'
-
-// Extract the asset_id (uint64 big-endian) from a box name: "consent_" (8 bytes) + uint64 (8 bytes)
-function assetIdFromBoxName(name: Uint8Array): bigint | null {
-  if (name.length !== 16) return null
-  const view = new DataView(name.buffer, name.byteOffset, name.byteLength)
-  return view.getBigUint64(8, false)
-}
 
 interface GrantedConsent {
   assetId: bigint
@@ -50,8 +43,8 @@ export function OrgConsents({ view }: Props) {
 
       const matched: GrantedConsent[] = []
       for (const box of boxes) {
-        const assetId = assetIdFromBoxName(box.name)
-        if (assetId === null) continue
+        const parsed = parseConsentBoxName(box.name)
+        if (!parsed || parsed.requester !== activeAddress) continue
 
         let record: ConsentRecord
         try {
@@ -61,7 +54,7 @@ export function OrgConsents({ view }: Props) {
           continue
         }
 
-        if (record.requester !== activeAddress) continue
+        const assetId = record.assetId
 
         let revoked = false
         try {

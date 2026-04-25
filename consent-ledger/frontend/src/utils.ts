@@ -48,14 +48,27 @@ export function decodeConsentRecord(data: Uint8Array): ConsentRecord {
 }
 
 /**
- * Build the box name for a consent record: b"consent_" + asset_id as 8-byte big-endian.
+ * Build the box name for a consent record: owner_bytes(32) + requester_bytes(32) = 64 bytes.
+ * 64 bytes is the AVM hard limit for box names.
  */
-export function consentBoxName(assetId: bigint): Uint8Array {
-  const prefix = new TextEncoder().encode('consent_')
-  const key    = new Uint8Array(8)
-  const view   = new DataView(key.buffer)
-  view.setBigUint64(0, assetId, false)
-  return new Uint8Array([...prefix, ...key])
+export function consentBoxName(ownerAddress: string, requesterAddress: string): Uint8Array {
+  const ownerBytes = algosdk.decodeAddress(ownerAddress).publicKey      // 32 bytes
+  const requesterBytes = algosdk.decodeAddress(requesterAddress).publicKey  // 32 bytes
+  return new Uint8Array([...ownerBytes, ...requesterBytes])
+}
+
+/**
+ * Parse a 64-byte box name: owner_bytes(32) + requester_bytes(32).
+ * Returns null if the name is not exactly 64 bytes.
+ */
+export function parseConsentBoxName(name: Uint8Array): { owner: string; requester: string } | null {
+  if (name.length !== 64) return null
+  const ownerBytes = name.slice(0, 32)
+  const requesterBytes = name.slice(32, 64)
+  return {
+    owner: algosdk.encodeAddress(ownerBytes),
+    requester: algosdk.encodeAddress(requesterBytes),
+  }
 }
 
 /**

@@ -4,6 +4,7 @@ import { AlgorandClient } from '@algorandfoundation/algokit-utils'
 import algosdk from 'algosdk'
 import { ConsentLedgerClient } from '../contracts/ConsentLedgerClient'
 import { CONFIG } from '../config'
+import { consentBoxName } from '../utils'
 
 const DATA_TYPES = ['Medical', 'KYC', 'Financial', 'Identity', 'Other'] as const
 type DataType = (typeof DATA_TYPES)[number]
@@ -89,6 +90,8 @@ export function GrantConsentForm() {
           expiry: expiryTs,
         },
         extraFee: (3_000).microAlgo(),
+        // Box key is consent_ + sender_bytes(32) + requester_bytes(32) — known before execution
+        boxReferences: [{ appId: CONFIG.APP_ID, name: consentBoxName(activeAddress, form.orgAddress.trim()) }],
       })
 
       setResult({
