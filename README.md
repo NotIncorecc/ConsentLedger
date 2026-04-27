@@ -19,3 +19,13 @@ The core tension it captures is this: data consent in India today is a legal fic
 
 Upvote the project on DoraHacks
 https://dorahacks.io/buidl/43102
+
+All three Phase 2 contracts are live on testnet:
+
+| Contract | App ID | App Address |
+|---|---|---|
+| **ConsentLedger** (upgraded) | `759443293` | `2FN6S5JJ...` |
+| **ZKVerifierContract** | `759443440` | `THKQ6UTU...` |
+| **OrgRegistryContract** | `759443291` | `LVQLVHAV...` |
+
+You can inspect them on [lora.algokit.io/testnet](https://lora.algokit.io/testnet) by searching those app IDs.

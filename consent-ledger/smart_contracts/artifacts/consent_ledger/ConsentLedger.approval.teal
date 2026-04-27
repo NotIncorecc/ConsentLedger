@@ -3,23 +3,23 @@
 
 // algopy.arc4.ARC4Contract.approval_program() -> uint64:
 main:
-    intcblock 0 32 1 8
-    bytecblock 0x00 0x151f7c75
-    // smart_contracts/consent_ledger/contract.py:25
+    intcblock 32 1 0 136
+    bytecblock 0x151f7c75 0x00 0x80
+    // smart_contracts/consent_ledger/contract.py:31
     // class ConsentLedger(ARC4Contract):
     txn NumAppArgs
-    bz main___algopy_default_create@12
+    bz main___algopy_default_create@13
     txn OnCompletion
     !
     assert
     txn ApplicationID
     assert
-    pushbytess 0x9719cb7e 0x412dcb98 0x4a569b1f // method "grant_consent(address,string,string,uint64)uint64", method "revoke_consent(address)void", method "is_consent_valid(address,address)bool"
+    pushbytess 0xa369a752 0x412dcb98 0x4a569b1f 0xcddba17c // method "grant_consent(address,uint8[32],uint8[32],uint64,uint8)uint64", method "revoke_consent(address)void", method "is_consent_valid(address,address)bool", method "get_consent_record(address,address)(address,address,uint8[32],uint8[32],uint64,uint64,uint8)"
     txna ApplicationArgs 0
-    match grant_consent revoke_consent is_consent_valid
+    match grant_consent revoke_consent is_consent_valid get_consent_record
     err
 
-main___algopy_default_create@12:
+main___algopy_default_create@13:
     txn OnCompletion
     !
     txn ApplicationID
@@ -30,92 +30,60 @@ main___algopy_default_create@12:
 
 // smart_contracts.consent_ledger.contract.ConsentLedger.grant_consent[routing]() -> void:
 grant_consent:
-    // smart_contracts/consent_ledger/contract.py:43
+    // smart_contracts/consent_ledger/contract.py:46
     // @abimethod()
     txna ApplicationArgs 1
     dup
     len
-    intc_1 // 32
+    intc_0 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
     txna ApplicationArgs 2
     dup
-    intc_0 // 0
-    extract_uint16 // on error: invalid array length header
-    pushint 2
-    +
-    dig 1
     len
-    dup
-    uncover 2
+    intc_0 // 32
     ==
-    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
     txna ApplicationArgs 3
     dup
-    intc_0 // 0
-    extract_uint16 // on error: invalid array length header
-    pushint 2
-    +
-    dig 1
     len
+    intc_0 // 32
     ==
-    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
     txna ApplicationArgs 4
     dup
     len
-    intc_3 // 8
+    pushint 8
     ==
     assert // invalid number of bytes for arc4.uint64
-    // smart_contracts/consent_ledger/contract.py:62
-    // b"ConsentLedger|"
-    pushbytes 0x436f6e73656e744c65646765727c
-    // smart_contracts/consent_ledger/contract.py:62-63
-    // b"ConsentLedger|"
-    // + data_type.bytes
-    dig 4
-    concat
-    // smart_contracts/consent_ledger/contract.py:64
-    // + b"|"
-    pushbytes 0x7c
-    // smart_contracts/consent_ledger/contract.py:62-64
-    // b"ConsentLedger|"
-    // + data_type.bytes
-    // + b"|"
-    concat
-    // smart_contracts/consent_ledger/contract.py:62-65
-    // b"ConsentLedger|"
-    // + data_type.bytes
-    // + b"|"
-    // + purpose.bytes
-    dig 2
-    concat
+    txna ApplicationArgs 5
+    dup
+    len
+    intc_1 // 1
+    ==
+    assert // invalid number of bytes for arc4.uint8
     // smart_contracts/consent_ledger/contract.py:66
-    // + b"|requester:"
-    pushbytes 0x7c7265717565737465723a
-    // smart_contracts/consent_ledger/contract.py:62-66
-    // b"ConsentLedger|"
-    // + data_type.bytes
-    // + b"|"
-    // + purpose.bytes
-    // + b"|requester:"
+    // assert null_key not in self.nullifiers, "Nullifier already used (replay attack)"
+    pushbytes 0x6e756c6c5f
+    dig 3
     concat
-    // smart_contracts/consent_ledger/contract.py:62-67
-    // b"ConsentLedger|"
-    // + data_type.bytes
-    // + b"|"
-    // + purpose.bytes
-    // + b"|requester:"
-    // + requester.bytes
-    dig 5
-    concat
-    // smart_contracts/consent_ledger/contract.py:70-83
+    dup
+    box_len
+    bury 1
+    !
+    assert // Nullifier already used (replay attack)
+    // smart_contracts/consent_ledger/contract.py:67
+    // self.nullifiers[null_key] = arc4.Bool(True)
+    bytec_2 // 0x80
+    box_put
+    // smart_contracts/consent_ledger/contract.py:69-82
     // # Mint 1 consent token (NFT-style, indivisible)
     // mint_result = itxn.AssetConfig(
     //     total=1,
     //     decimals=0,
     //     unit_name=b"CONSENT",
     //     asset_name=b"ConsentToken",
-    //     note=note,
+    //     note=b"ConsentLedger|zk_committed",
     //     manager=Global.current_application_address,
     //     reserve=Global.current_application_address,
     //     freeze=Global.current_application_address,
@@ -124,56 +92,59 @@ grant_consent:
     //     fee=0,
     // ).submit()
     itxn_begin
-    // smart_contracts/consent_ledger/contract.py:77
+    // smart_contracts/consent_ledger/contract.py:76
     // manager=Global.current_application_address,
     global CurrentApplicationAddress
-    // smart_contracts/consent_ledger/contract.py:78-80
+    // smart_contracts/consent_ledger/contract.py:77-79
     // reserve=Global.current_application_address,
     // freeze=Global.current_application_address,
     // clawback=Global.current_application_address,
     dupn 3
-    // smart_contracts/consent_ledger/contract.py:81
+    // smart_contracts/consent_ledger/contract.py:80
     // default_frozen=False,
-    intc_0 // 0
+    intc_2 // 0
     itxn_field ConfigAssetDefaultFrozen
     itxn_field ConfigAssetClawback
     itxn_field ConfigAssetFreeze
     itxn_field ConfigAssetReserve
     itxn_field ConfigAssetManager
-    itxn_field Note
     // smart_contracts/consent_ledger/contract.py:75
+    // note=b"ConsentLedger|zk_committed",
+    pushbytes 0x436f6e73656e744c65646765727c7a6b5f636f6d6d6974746564
+    itxn_field Note
+    // smart_contracts/consent_ledger/contract.py:74
     // asset_name=b"ConsentToken",
     pushbytes 0x436f6e73656e74546f6b656e
     itxn_field ConfigAssetName
-    // smart_contracts/consent_ledger/contract.py:74
+    // smart_contracts/consent_ledger/contract.py:73
     // unit_name=b"CONSENT",
     pushbytes 0x434f4e53454e54
     itxn_field ConfigAssetUnitName
-    // smart_contracts/consent_ledger/contract.py:73
-    // decimals=0,
-    intc_0 // 0
-    itxn_field ConfigAssetDecimals
     // smart_contracts/consent_ledger/contract.py:72
+    // decimals=0,
+    intc_2 // 0
+    itxn_field ConfigAssetDecimals
+    // smart_contracts/consent_ledger/contract.py:71
     // total=1,
-    intc_2 // 1
+    intc_1 // 1
     itxn_field ConfigAssetTotal
-    // smart_contracts/consent_ledger/contract.py:70-71
+    // smart_contracts/consent_ledger/contract.py:69-70
     // # Mint 1 consent token (NFT-style, indivisible)
     // mint_result = itxn.AssetConfig(
     pushint 3 // acfg
     itxn_field TypeEnum
-    // smart_contracts/consent_ledger/contract.py:82
+    // smart_contracts/consent_ledger/contract.py:81
     // fee=0,
-    intc_0 // 0
+    intc_2 // 0
     itxn_field Fee
-    // smart_contracts/consent_ledger/contract.py:70-83
+    // smart_contracts/consent_ledger/contract.py:69-82
     // # Mint 1 consent token (NFT-style, indivisible)
     // mint_result = itxn.AssetConfig(
     //     total=1,
     //     decimals=0,
     //     unit_name=b"CONSENT",
     //     asset_name=b"ConsentToken",
-    //     note=note,
+    //     note=b"ConsentLedger|zk_committed",
     //     manager=Global.current_application_address,
     //     reserve=Global.current_application_address,
     //     freeze=Global.current_application_address,
@@ -182,101 +153,87 @@ grant_consent:
     //     fee=0,
     // ).submit()
     itxn_submit
-    // smart_contracts/consent_ledger/contract.py:94
+    // smart_contracts/consent_ledger/contract.py:88
     // owner=arc4.Address(Txn.sender),
     txn Sender
     itxn CreatedAssetID
-    // smart_contracts/consent_ledger/contract.py:99
+    // smart_contracts/consent_ledger/contract.py:93
     // asset_id=arc4.UInt64(new_asset_id),
     itob
-    // smart_contracts/consent_ledger/contract.py:92-100
-    // # Store the consent record in box storage keyed by sender||requester (64 bytes)
+    // smart_contracts/consent_ledger/contract.py:86-95
+    // # Store ZK-committed consent record keyed by sender||requester (64 bytes)
     // record = ConsentRecord(
     //     owner=arc4.Address(Txn.sender),
     //     requester=requester,
-    //     data_type=data_type,
-    //     purpose=purpose,
+    //     commitment=commitment.copy(),
+    //     nullifier=nullifier.copy(),
     //     expiry=expiry,
     //     asset_id=arc4.UInt64(new_asset_id),
+    //     dpdp_section=dpdp_section,
     // )
     swap
     dig 6
     concat
-    pushbytes 0x0054
-    concat
-    pushint 84
     uncover 5
-    +
-    itob
-    extract 6 2
     concat
-    uncover 2
-    concat
-    dig 1
+    uncover 4
     concat
     uncover 3
     concat
+    dig 1
+    concat
     uncover 2
     concat
-    // smart_contracts/consent_ledger/contract.py:101
+    // smart_contracts/consent_ledger/contract.py:96
     // box_key = Txn.sender.bytes + requester.bytes
     txn Sender
     uncover 3
     concat
-    // smart_contracts/consent_ledger/contract.py:102
+    // smart_contracts/consent_ledger/contract.py:97
     // self.consents[box_key] = record.copy()
-    dup
-    box_del
-    pop
     swap
     box_put
-    // smart_contracts/consent_ledger/contract.py:43
+    // smart_contracts/consent_ledger/contract.py:46
     // @abimethod()
-    bytec_1 // 0x151f7c75
+    bytec_0 // 0x151f7c75
     swap
     concat
     log
-    intc_2 // 1
+    intc_1 // 1
     return
 
 
 // smart_contracts.consent_ledger.contract.ConsentLedger.revoke_consent[routing]() -> void:
 revoke_consent:
-    // smart_contracts/consent_ledger/contract.py:110
+    // smart_contracts/consent_ledger/contract.py:101
     // @abimethod()
     txna ApplicationArgs 1
     dup
     len
-    intc_1 // 32
+    intc_0 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // smart_contracts/consent_ledger/contract.py:117
+    // smart_contracts/consent_ledger/contract.py:107
     // box_key = Txn.sender.bytes + requester.bytes
     txn Sender
     swap
     concat
-    // smart_contracts/consent_ledger/contract.py:119-121
-    // # Load record and verify ownership
+    // smart_contracts/consent_ledger/contract.py:109
     // record = self.consents[box_key].copy()
+    box_get
+    assert // check self.consents entry exists
+    // smart_contracts/consent_ledger/contract.py:110
     // assert record.owner == arc4.Address(Txn.sender), "Only the owner can revoke consent"
     dup
-    intc_0 // 0
-    intc_1 // 32
-    box_extract // on error: index out of bounds
-    // smart_contracts/consent_ledger/contract.py:121
-    // assert record.owner == arc4.Address(Txn.sender), "Only the owner can revoke consent"
+    extract 0 32
     txn Sender
     ==
     assert // Only the owner can revoke consent
-    // smart_contracts/consent_ledger/contract.py:123
+    // smart_contracts/consent_ledger/contract.py:112
     // native_asset_id = record.asset_id.native
-    pushint 76
-    intc_3 // 8
-    box_extract // on error: index out of bounds
-    btoi
-    // smart_contracts/consent_ledger/contract.py:125-132
-    // # Freeze the app's own holding of the ASA — the app is the creator
-    // # and holds the total supply. Freezing it marks the consent as revoked.
+    intc_3 // 136
+    extract_uint64
+    // smart_contracts/consent_ledger/contract.py:114-119
     // itxn.AssetFreeze(
     //     freeze_asset=Asset(native_asset_id),
     //     freeze_account=Global.current_application_address,
@@ -284,28 +241,24 @@ revoke_consent:
     //     fee=0,
     // ).submit()
     itxn_begin
-    // smart_contracts/consent_ledger/contract.py:129
+    // smart_contracts/consent_ledger/contract.py:116
     // freeze_account=Global.current_application_address,
     global CurrentApplicationAddress
-    // smart_contracts/consent_ledger/contract.py:130
+    // smart_contracts/consent_ledger/contract.py:117
     // frozen=True,
-    intc_2 // 1
+    intc_1 // 1
     itxn_field FreezeAssetFrozen
     itxn_field FreezeAssetAccount
     itxn_field FreezeAsset
-    // smart_contracts/consent_ledger/contract.py:125-127
-    // # Freeze the app's own holding of the ASA — the app is the creator
-    // # and holds the total supply. Freezing it marks the consent as revoked.
+    // smart_contracts/consent_ledger/contract.py:114
     // itxn.AssetFreeze(
     pushint 5 // afrz
     itxn_field TypeEnum
-    // smart_contracts/consent_ledger/contract.py:131
+    // smart_contracts/consent_ledger/contract.py:118
     // fee=0,
-    intc_0 // 0
+    intc_2 // 0
     itxn_field Fee
-    // smart_contracts/consent_ledger/contract.py:125-132
-    // # Freeze the app's own holding of the ASA — the app is the creator
-    // # and holds the total supply. Freezing it marks the consent as revoked.
+    // smart_contracts/consent_ledger/contract.py:114-119
     // itxn.AssetFreeze(
     //     freeze_asset=Asset(native_asset_id),
     //     freeze_account=Global.current_application_address,
@@ -313,62 +266,67 @@ revoke_consent:
     //     fee=0,
     // ).submit()
     itxn_submit
-    // smart_contracts/consent_ledger/contract.py:110
+    // smart_contracts/consent_ledger/contract.py:101
     // @abimethod()
-    intc_2 // 1
+    intc_1 // 1
     return
 
 
 // smart_contracts.consent_ledger.contract.ConsentLedger.is_consent_valid[routing]() -> void:
 is_consent_valid:
+    intc_2 // 0
     pushbytes ""
-    // smart_contracts/consent_ledger/contract.py:138
+    // smart_contracts/consent_ledger/contract.py:121
     // @abimethod(readonly=True)
     txna ApplicationArgs 1
     dup
     len
-    intc_1 // 32
+    intc_0 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
     txna ApplicationArgs 2
     dup
     len
-    intc_1 // 32
+    intc_0 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // smart_contracts/consent_ledger/contract.py:152
+    // smart_contracts/consent_ledger/contract.py:131
     // box_key = owner.bytes + requester.bytes
     concat
     dup
-    // smart_contracts/consent_ledger/contract.py:154-155
-    // # Check record exists
+    // smart_contracts/consent_ledger/contract.py:133
     // if box_key not in self.consents:
     box_len
     bury 1
     bnz is_consent_valid_after_if_else@3
-    // smart_contracts/consent_ledger/contract.py:156
+    // smart_contracts/consent_ledger/contract.py:134
     // return arc4.Bool(False)
-    bytec_0 // 0x00
+    bytec_1 // 0x00
 
 is_consent_valid_after_inlined_smart_contracts.consent_ledger.contract.ConsentLedger.is_consent_valid@9:
-    // smart_contracts/consent_ledger/contract.py:138
+    // smart_contracts/consent_ledger/contract.py:121
     // @abimethod(readonly=True)
-    bytec_1 // 0x151f7c75
+    bytec_0 // 0x151f7c75
     swap
     concat
     log
-    intc_2 // 1
+    intc_1 // 1
     return
 
 is_consent_valid_after_if_else@3:
-    // smart_contracts/consent_ledger/contract.py:160-161
-    // # Check expiry (0 means no expiry)
-    // if record.expiry.native != 0 and record.expiry.native < Global.latest_timestamp:
+    // smart_contracts/consent_ledger/contract.py:136
+    // record = self.consents[box_key].copy()
     dup
-    pushint 68
-    intc_3 // 8
-    box_extract // on error: index out of bounds
-    btoi
+    box_get
+    swap
+    dup
+    cover 2
+    bury 5
+    assert // check self.consents entry exists
+    // smart_contracts/consent_ledger/contract.py:138
+    // if record.expiry.native != 0 and record.expiry.native < Global.latest_timestamp:
+    pushint 128
+    extract_uint64
     dup
     bury 3
     bz is_consent_valid_after_if_else@6
@@ -376,45 +334,82 @@ is_consent_valid_after_if_else@3:
     global LatestTimestamp
     <
     bz is_consent_valid_after_if_else@6
-    // smart_contracts/consent_ledger/contract.py:162
+    // smart_contracts/consent_ledger/contract.py:139
     // return arc4.Bool(False)
-    bytec_0 // 0x00
-    // smart_contracts/consent_ledger/contract.py:138
+    bytec_1 // 0x00
+    // smart_contracts/consent_ledger/contract.py:121
     // @abimethod(readonly=True)
     b is_consent_valid_after_inlined_smart_contracts.consent_ledger.contract.ConsentLedger.is_consent_valid@9
 
 is_consent_valid_after_if_else@6:
-    // smart_contracts/consent_ledger/contract.py:164
+    // smart_contracts/consent_ledger/contract.py:141
     // native_asset_id = record.asset_id.native
-    dup
-    pushint 76
-    intc_3 // 8
-    box_extract // on error: index out of bounds
-    btoi
-    // smart_contracts/consent_ledger/contract.py:169
+    dig 2
+    intc_3 // 136
+    extract_uint64
+    // smart_contracts/consent_ledger/contract.py:145
     // Global.current_application_address, asset
     global CurrentApplicationAddress
-    // smart_contracts/consent_ledger/contract.py:168-170
-    // is_frozen, dummy_exists = op.AssetHoldingGet.asset_frozen(
+    // smart_contracts/consent_ledger/contract.py:144-146
+    // is_frozen, _exists = op.AssetHoldingGet.asset_frozen(
     //     Global.current_application_address, asset
     // )
     swap
     asset_holding_get AssetFrozen
     pop
-    // smart_contracts/consent_ledger/contract.py:171
+    // smart_contracts/consent_ledger/contract.py:147
     // if is_frozen:
     bz is_consent_valid_after_if_else@8
-    // smart_contracts/consent_ledger/contract.py:172
+    // smart_contracts/consent_ledger/contract.py:148
     // return arc4.Bool(False)
-    bytec_0 // 0x00
-    // smart_contracts/consent_ledger/contract.py:138
+    bytec_1 // 0x00
+    // smart_contracts/consent_ledger/contract.py:121
     // @abimethod(readonly=True)
     b is_consent_valid_after_inlined_smart_contracts.consent_ledger.contract.ConsentLedger.is_consent_valid@9
 
 is_consent_valid_after_if_else@8:
-    // smart_contracts/consent_ledger/contract.py:174
+    // smart_contracts/consent_ledger/contract.py:150
     // return arc4.Bool(True)
-    pushbytes 0x80
-    // smart_contracts/consent_ledger/contract.py:138
+    bytec_2 // 0x80
+    // smart_contracts/consent_ledger/contract.py:121
     // @abimethod(readonly=True)
     b is_consent_valid_after_inlined_smart_contracts.consent_ledger.contract.ConsentLedger.is_consent_valid@9
+
+
+// smart_contracts.consent_ledger.contract.ConsentLedger.get_consent_record[routing]() -> void:
+get_consent_record:
+    // smart_contracts/consent_ledger/contract.py:152
+    // @abimethod(readonly=True)
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_0 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_0 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/consent_ledger/contract.py:162
+    // box_key = owner.bytes + requester.bytes
+    concat
+    // smart_contracts/consent_ledger/contract.py:163
+    // assert box_key in self.consents, "No consent record found"
+    dup
+    box_len
+    bury 1
+    assert // No consent record found
+    // smart_contracts/consent_ledger/contract.py:164
+    // return self.consents[box_key].copy()
+    box_get
+    pop
+    // smart_contracts/consent_ledger/contract.py:152
+    // @abimethod(readonly=True)
+    bytec_0 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_1 // 1
+    return

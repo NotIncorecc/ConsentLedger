@@ -32,14 +32,9 @@ def deploy() -> None:
         algokit_utils.OperationPerformed.Create,
         algokit_utils.OperationPerformed.Replace,
     ]:
-        algorand.send.payment(
-            algokit_utils.PaymentParams(
-                amount=algokit_utils.AlgoAmount(algo=1),
-                sender=deployer.address,
-                receiver=app_client.app_address,
-            )
+        logger.info(
+            f"ConsentLedger created at {app_client.app_address} — fund manually via testnet faucet before use"
         )
-        logger.info(f"Funded app account {app_client.app_address} with 1 ALGO for MBR")
 
     logger.info(
         f"ConsentLedger deployed: app_id={app_client.app_id}, "

@@ -1,0 +1,283 @@
+#pragma version 11
+#pragma typetrack false
+
+// algopy.arc4.ARC4Contract.approval_program() -> uint64:
+main:
+    intcblock 1 32 0 8
+    bytecblock 0x00 "consent_ledger_app"
+    txn ApplicationID
+    bnz main_after_if_else@2
+    // smart_contracts/zk_verifier/contract.py:39-41
+    // # consent_ledger_app links proofs to a specific ConsentLedger deployment.
+    // # Updated post-deploy via set_consent_ledger_app() by the creator.
+    // self.consent_ledger_app = UInt64(0)
+    bytec_1 // "consent_ledger_app"
+    intc_2 // 0
+    app_global_put
+
+main_after_if_else@2:
+    // smart_contracts/zk_verifier/contract.py:24
+    // class ZKVerifierContract(ARC4Contract):
+    txn NumAppArgs
+    bz main___algopy_default_create@13
+    txn OnCompletion
+    !
+    assert
+    txn ApplicationID
+    assert
+    pushbytess 0x9b8220bd 0x64347107 0x5d61537b 0xc4137892 // method "set_consent_ledger_app(uint64)void", method "submit_proof(uint8[32],uint8,uint64)void", method "confirm_verification(address,uint8[32])void", method "is_proof_valid(address,uint8[32])bool"
+    txna ApplicationArgs 0
+    match set_consent_ledger_app submit_proof confirm_verification is_proof_valid
+    err
+
+main___algopy_default_create@13:
+    txn OnCompletion
+    !
+    txn ApplicationID
+    !
+    &&
+    return
+
+
+// smart_contracts.zk_verifier.contract.ZKVerifierContract.set_consent_ledger_app[routing]() -> void:
+set_consent_ledger_app:
+    // smart_contracts/zk_verifier/contract.py:45
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    // smart_contracts/zk_verifier/contract.py:48
+    // assert Txn.sender == Global.creator_address, "Only creator can configure"
+    txn Sender
+    global CreatorAddress
+    ==
+    assert // Only creator can configure
+    // smart_contracts/zk_verifier/contract.py:49
+    // self.consent_ledger_app = app_id.native
+    btoi
+    bytec_1 // "consent_ledger_app"
+    swap
+    app_global_put
+    // smart_contracts/zk_verifier/contract.py:45
+    // @abimethod()
+    intc_0 // 1
+    return
+
+
+// smart_contracts.zk_verifier.contract.ZKVerifierContract.submit_proof[routing]() -> void:
+submit_proof:
+    // smart_contracts/zk_verifier/contract.py:51
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_0 // 1
+    ==
+    assert // invalid number of bytes for arc4.uint8
+    txna ApplicationArgs 3
+    dup
+    len
+    intc_3 // 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    // smart_contracts/zk_verifier/contract.py:63
+    // key = op.sha256(Txn.sender.bytes + proof_hash.bytes)
+    txn Sender
+    dig 3
+    concat
+    sha256
+    // smart_contracts/zk_verifier/contract.py:64
+    // assert key not in self.proofs, "Proof already submitted"
+    dup
+    box_len
+    bury 1
+    !
+    assert // Proof already submitted
+    // smart_contracts/zk_verifier/contract.py:65-71
+    // record = ProofRecord(
+    //     proof_hash=proof_hash.copy(),
+    //     circuit_type=circuit_type,
+    //     is_verified=arc4.Bool(False),
+    //     verified_round=arc4.UInt64(0),
+    //     consent_app_id=consent_app_id,
+    // )
+    uncover 3
+    uncover 3
+    concat
+    pushbytes 0x000000000000000000
+    concat
+    uncover 2
+    concat
+    // smart_contracts/zk_verifier/contract.py:72
+    // self.proofs[key] = record.copy()
+    box_put
+    // smart_contracts/zk_verifier/contract.py:51
+    // @abimethod()
+    intc_0 // 1
+    return
+
+
+// smart_contracts.zk_verifier.contract.ZKVerifierContract.confirm_verification[routing]() -> void:
+confirm_verification:
+    // smart_contracts/zk_verifier/contract.py:74
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/zk_verifier/contract.py:84
+    // assert Txn.sender == Global.creator_address, "Only trusted backend can confirm"
+    txn Sender
+    global CreatorAddress
+    ==
+    assert // Only trusted backend can confirm
+    // smart_contracts/zk_verifier/contract.py:85
+    // key = op.sha256(user.bytes + proof_hash.bytes)
+    concat
+    sha256
+    // smart_contracts/zk_verifier/contract.py:86
+    // assert key in self.proofs, "Unknown proof — call submit_proof first"
+    dup
+    box_len
+    bury 1
+    assert // Unknown proof — call submit_proof first
+    // smart_contracts/zk_verifier/contract.py:87
+    // record = self.proofs[key].copy()
+    dup
+    box_get
+    pop
+    // smart_contracts/zk_verifier/contract.py:88
+    // assert not record.is_verified.native, "Proof already confirmed"
+    dup
+    pushint 264
+    getbit
+    bytec_0 // 0x00
+    intc_2 // 0
+    uncover 2
+    setbit
+    intc_2 // 0
+    getbit
+    !
+    assert // Proof already confirmed
+    // smart_contracts/zk_verifier/contract.py:90
+    // proof_hash=record.proof_hash.copy(),
+    dup
+    extract 0 32
+    // smart_contracts/zk_verifier/contract.py:91
+    // circuit_type=record.circuit_type,
+    dig 1
+    extract 32 1
+    // smart_contracts/zk_verifier/contract.py:93
+    // verified_round=arc4.UInt64(Global.round),
+    global Round
+    itob
+    // smart_contracts/zk_verifier/contract.py:94
+    // consent_app_id=record.consent_app_id,
+    uncover 3
+    extract 42 8
+    // smart_contracts/zk_verifier/contract.py:89-95
+    // self.proofs[key] = ProofRecord(
+    //     proof_hash=record.proof_hash.copy(),
+    //     circuit_type=record.circuit_type,
+    //     is_verified=arc4.Bool(True),
+    //     verified_round=arc4.UInt64(Global.round),
+    //     consent_app_id=record.consent_app_id,
+    // ).copy()
+    uncover 3
+    uncover 3
+    concat
+    // smart_contracts/zk_verifier/contract.py:92
+    // is_verified=arc4.Bool(True),
+    pushbytes 0x80
+    // smart_contracts/zk_verifier/contract.py:89-95
+    // self.proofs[key] = ProofRecord(
+    //     proof_hash=record.proof_hash.copy(),
+    //     circuit_type=record.circuit_type,
+    //     is_verified=arc4.Bool(True),
+    //     verified_round=arc4.UInt64(Global.round),
+    //     consent_app_id=record.consent_app_id,
+    // ).copy()
+    concat
+    uncover 2
+    concat
+    swap
+    concat
+    box_put
+    // smart_contracts/zk_verifier/contract.py:74
+    // @abimethod()
+    intc_0 // 1
+    return
+
+
+// smart_contracts.zk_verifier.contract.ZKVerifierContract.is_proof_valid[routing]() -> void:
+is_proof_valid:
+    // smart_contracts/zk_verifier/contract.py:97
+    // @abimethod(readonly=True)
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    len
+    intc_1 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/zk_verifier/contract.py:104
+    // key = op.sha256(user.bytes + proof_hash.bytes)
+    concat
+    sha256
+    dup
+    // smart_contracts/zk_verifier/contract.py:105
+    // if key not in self.proofs:
+    box_len
+    bury 1
+    bnz is_proof_valid_after_if_else@3
+    // smart_contracts/zk_verifier/contract.py:106
+    // return arc4.Bool(False)
+    bytec_0 // 0x00
+
+is_proof_valid_after_inlined_smart_contracts.zk_verifier.contract.ZKVerifierContract.is_proof_valid@4:
+    // smart_contracts/zk_verifier/contract.py:97
+    // @abimethod(readonly=True)
+    pushbytes 0x151f7c75
+    swap
+    concat
+    log
+    intc_0 // 1
+    return
+
+is_proof_valid_after_if_else@3:
+    // smart_contracts/zk_verifier/contract.py:107
+    // return arc4.Bool(self.proofs[key].is_verified.native)
+    dup
+    box_get
+    assert // check self.proofs entry exists
+    pushint 264
+    getbit
+    bytec_0 // 0x00
+    intc_2 // 0
+    uncover 2
+    setbit
+    // smart_contracts/zk_verifier/contract.py:97
+    // @abimethod(readonly=True)
+    b is_proof_valid_after_inlined_smart_contracts.zk_verifier.contract.ZKVerifierContract.is_proof_valid@4

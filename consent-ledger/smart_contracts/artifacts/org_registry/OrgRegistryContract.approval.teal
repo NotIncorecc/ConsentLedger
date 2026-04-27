@@ -1,0 +1,390 @@
+#pragma version 11
+#pragma typetrack false
+
+// algopy.arc4.ARC4Contract.approval_program() -> uint64:
+main:
+    intcblock 2 0 32 1
+    bytecblock 0x00 0x6f72675f 0x0027 0x151f7c75
+    // smart_contracts/org_registry/contract.py:20
+    // class OrgRegistryContract(ARC4Contract):
+    txn NumAppArgs
+    bz main___algopy_default_create@13
+    txn OnCompletion
+    !
+    assert
+    txn ApplicationID
+    assert
+    pushbytess 0x5c8f3715 0x88899749 0xc8ec8c6d 0x1674f47d // method "register_org(address,string,string,uint16,address)void", method "deactivate_org(address)void", method "is_org_authorized(address,uint16)bool", method "get_org_record(address)(string,string,uint16,address,bool)"
+    txna ApplicationArgs 0
+    match register_org deactivate_org is_org_authorized get_org_record
+    err
+
+main___algopy_default_create@13:
+    txn OnCompletion
+    !
+    txn ApplicationID
+    !
+    &&
+    return
+
+
+// smart_contracts.org_registry.contract.OrgRegistryContract.register_org[routing]() -> void:
+register_org:
+    // smart_contracts/org_registry/contract.py:33
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    intc_1 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_0 // 2
+    +
+    dig 1
+    len
+    dup
+    uncover 2
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    txna ApplicationArgs 3
+    dup
+    intc_1 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_0 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    txna ApplicationArgs 4
+    dup
+    len
+    intc_0 // 2
+    ==
+    assert // invalid number of bytes for arc4.uint16
+    txna ApplicationArgs 5
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/org_registry/contract.py:43
+    // assert Txn.sender == Global.creator_address, "Only admin can register organisations"
+    txn Sender
+    global CreatorAddress
+    ==
+    assert // Only admin can register organisations
+    // smart_contracts/org_registry/contract.py:45-51
+    // record = OrgRecord(
+    //     name=name,
+    //     dpdp_license=dpdp_license,
+    //     allowed_types=allowed_types,
+    //     x402_wallet=x402_wallet,
+    //     is_active=arc4.Bool(True),
+    // )
+    pushint 39
+    uncover 4
+    +
+    itob
+    extract 6 2
+    bytec_2 // 0x0027
+    swap
+    concat
+    uncover 2
+    concat
+    swap
+    concat
+    // smart_contracts/org_registry/contract.py:50
+    // is_active=arc4.Bool(True),
+    pushbytes 0x80
+    // smart_contracts/org_registry/contract.py:45-51
+    // record = OrgRecord(
+    //     name=name,
+    //     dpdp_license=dpdp_license,
+    //     allowed_types=allowed_types,
+    //     x402_wallet=x402_wallet,
+    //     is_active=arc4.Bool(True),
+    // )
+    concat
+    uncover 2
+    concat
+    swap
+    concat
+    // smart_contracts/org_registry/contract.py:52
+    // self.orgs[key] = record.copy()
+    bytec_1 // 0x6f72675f
+    uncover 2
+    concat
+    dup
+    box_del
+    pop
+    swap
+    box_put
+    // smart_contracts/org_registry/contract.py:33
+    // @abimethod()
+    intc_3 // 1
+    return
+
+
+// smart_contracts.org_registry.contract.OrgRegistryContract.deactivate_org[routing]() -> void:
+deactivate_org:
+    // smart_contracts/org_registry/contract.py:54
+    // @abimethod()
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/org_registry/contract.py:57
+    // assert Txn.sender == Global.creator_address, "Only admin can deactivate organisations"
+    txn Sender
+    global CreatorAddress
+    ==
+    assert // Only admin can deactivate organisations
+    // smart_contracts/org_registry/contract.py:59
+    // assert key in self.orgs, "Organisation not found"
+    bytec_1 // 0x6f72675f
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    assert // Organisation not found
+    // smart_contracts/org_registry/contract.py:62
+    // name=record.name,
+    dup
+    pushint 39
+    intc_0 // 2
+    box_extract
+    btoi
+    intc_0 // 2
+    +
+    dig 1
+    pushint 39
+    uncover 2
+    box_extract
+    // smart_contracts/org_registry/contract.py:63
+    // dpdp_license=record.dpdp_license,
+    dig 1
+    intc_0 // 2
+    dup
+    box_extract
+    btoi
+    dig 2
+    dig 1
+    intc_0 // 2
+    box_extract
+    btoi
+    intc_0 // 2
+    +
+    dig 3
+    cover 2
+    box_extract
+    // smart_contracts/org_registry/contract.py:64
+    // allowed_types=record.allowed_types,
+    dig 2
+    pushint 4
+    intc_0 // 2
+    box_extract // on error: index out of bounds
+    // smart_contracts/org_registry/contract.py:65
+    // x402_wallet=record.x402_wallet,
+    dig 3
+    pushint 6
+    intc_2 // 32
+    box_extract // on error: index out of bounds
+    // smart_contracts/org_registry/contract.py:61-67
+    // self.orgs[key] = OrgRecord(
+    //     name=record.name,
+    //     dpdp_license=record.dpdp_license,
+    //     allowed_types=record.allowed_types,
+    //     x402_wallet=record.x402_wallet,
+    //     is_active=arc4.Bool(False),
+    // ).copy()
+    dig 3
+    len
+    pushint 39
+    +
+    itob
+    extract 6 2
+    bytec_2 // 0x0027
+    swap
+    concat
+    uncover 2
+    concat
+    swap
+    concat
+    // smart_contracts/org_registry/contract.py:66
+    // is_active=arc4.Bool(False),
+    bytec_0 // 0x00
+    // smart_contracts/org_registry/contract.py:61-67
+    // self.orgs[key] = OrgRecord(
+    //     name=record.name,
+    //     dpdp_license=record.dpdp_license,
+    //     allowed_types=record.allowed_types,
+    //     x402_wallet=record.x402_wallet,
+    //     is_active=arc4.Bool(False),
+    // ).copy()
+    concat
+    uncover 2
+    concat
+    swap
+    concat
+    dig 1
+    box_del
+    pop
+    box_put
+    // smart_contracts/org_registry/contract.py:54
+    // @abimethod()
+    intc_3 // 1
+    return
+
+
+// smart_contracts.org_registry.contract.OrgRegistryContract.is_org_authorized[routing]() -> void:
+is_org_authorized:
+    pushbytes ""
+    dup
+    // smart_contracts/org_registry/contract.py:69
+    // @abimethod(readonly=True)
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    txna ApplicationArgs 2
+    dup
+    cover 2
+    len
+    intc_0 // 2
+    ==
+    assert // invalid number of bytes for arc4.uint16
+    // smart_contracts/org_registry/contract.py:80
+    // if key not in self.orgs:
+    bytec_1 // 0x6f72675f
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    bnz is_org_authorized_after_if_else@3
+    // smart_contracts/org_registry/contract.py:81
+    // return arc4.Bool(False)
+    bytec_0 // 0x00
+
+is_org_authorized_after_inlined_smart_contracts.org_registry.contract.OrgRegistryContract.is_org_authorized@10:
+    // smart_contracts/org_registry/contract.py:69
+    // @abimethod(readonly=True)
+    bytec_3 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_3 // 1
+    return
+
+is_org_authorized_after_if_else@3:
+    // smart_contracts/org_registry/contract.py:82-83
+    // record = self.orgs[key].copy()
+    // if not record.is_active.native:
+    dup
+    pushint 38
+    intc_3 // 1
+    box_extract // on error: index out of bounds
+    intc_1 // 0
+    getbit
+    // smart_contracts/org_registry/contract.py:83
+    // if not record.is_active.native:
+    bytec_0 // 0x00
+    intc_1 // 0
+    uncover 2
+    setbit
+    intc_1 // 0
+    getbit
+    bnz is_org_authorized_after_if_else@5
+    // smart_contracts/org_registry/contract.py:84
+    // return arc4.Bool(False)
+    bytec_0 // 0x00
+    // smart_contracts/org_registry/contract.py:69
+    // @abimethod(readonly=True)
+    b is_org_authorized_after_inlined_smart_contracts.org_registry.contract.OrgRegistryContract.is_org_authorized@10
+
+is_org_authorized_after_if_else@5:
+    // smart_contracts/org_registry/contract.py:85
+    // allowed = record.allowed_types.native
+    dup
+    pushint 4
+    intc_0 // 2
+    box_extract // on error: index out of bounds
+    btoi
+    bury 4
+    // smart_contracts/org_registry/contract.py:86
+    // requested = requested_field_mask.native
+    dig 1
+    btoi
+    dup
+    bury 4
+    // smart_contracts/org_registry/contract.py:87-88
+    // # All requested bits must be set in allowed, and request must not be empty
+    // return arc4.Bool(requested != 0 and (allowed & requested) == requested)
+    bz is_org_authorized_bool_false@8
+    dig 3
+    dig 3
+    dup
+    cover 2
+    &
+    ==
+    bz is_org_authorized_bool_false@8
+    intc_3 // 1
+
+is_org_authorized_bool_merge@9:
+    // smart_contracts/org_registry/contract.py:87-88
+    // # All requested bits must be set in allowed, and request must not be empty
+    // return arc4.Bool(requested != 0 and (allowed & requested) == requested)
+    bytec_0 // 0x00
+    intc_1 // 0
+    uncover 2
+    setbit
+    // smart_contracts/org_registry/contract.py:69
+    // @abimethod(readonly=True)
+    b is_org_authorized_after_inlined_smart_contracts.org_registry.contract.OrgRegistryContract.is_org_authorized@10
+
+is_org_authorized_bool_false@8:
+    intc_1 // 0
+    b is_org_authorized_bool_merge@9
+
+
+// smart_contracts.org_registry.contract.OrgRegistryContract.get_org_record[routing]() -> void:
+get_org_record:
+    // smart_contracts/org_registry/contract.py:90
+    // @abimethod(readonly=True)
+    txna ApplicationArgs 1
+    dup
+    len
+    intc_2 // 32
+    ==
+    assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
+    // smart_contracts/org_registry/contract.py:94
+    // assert key in self.orgs, "Organisation not found"
+    bytec_1 // 0x6f72675f
+    swap
+    concat
+    dup
+    box_len
+    bury 1
+    assert // Organisation not found
+    // smart_contracts/org_registry/contract.py:95
+    // return self.orgs[key].copy()
+    box_get
+    pop
+    // smart_contracts/org_registry/contract.py:90
+    // @abimethod(readonly=True)
+    bytec_3 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_3 // 1
+    return
