@@ -82,13 +82,15 @@ export function GrantConsentForm() {
         defaultSender: activeAddress,
       })
 
+      // Legacy form — superseded by ZKConsentFlow in Phase 4
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await client.send.grantConsent({
         args: {
           requester: form.orgAddress.trim(),
           dataType: form.dataType,
           purpose: fullPurpose,
           expiry: expiryTs,
-        },
+        } as any,
         extraFee: (3_000).microAlgo(),
         // Box key is consent_ + sender_bytes(32) + requester_bytes(32) — known before execution
         boxReferences: [{ appId: CONFIG.APP_ID, name: consentBoxName(activeAddress, form.orgAddress.trim()) }],

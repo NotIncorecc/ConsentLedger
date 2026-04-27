@@ -20,7 +20,7 @@ export function RolePicker({ onSelect }: Props) {
         Who are you?
       </p>
 
-      <div className="flex flex-col sm:flex-row gap-6 w-full max-w-lg">
+      <div className="flex flex-col sm:flex-row gap-6 w-full max-w-2xl">
         {/* Organisation card */}
         <button
           onClick={() => onSelect('org')}
@@ -56,6 +56,25 @@ export function RolePicker({ onSelect }: Props) {
           </div>
           <span className="mt-2 px-4 py-1.5 rounded-full bg-emerald-600 text-white text-sm font-semibold group-hover:bg-emerald-700 transition-colors">
             Login as User
+          </span>
+        </button>
+
+        {/* Regulator card */}
+        <button
+          onClick={() => onSelect('regulator')}
+          className="flex-1 bg-white border-2 border-violet-200 hover:border-violet-500 hover:shadow-lg rounded-2xl p-8 flex flex-col items-center gap-4 transition-all group"
+        >
+          <div className="w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center text-3xl group-hover:bg-violet-200 transition-colors">
+            ⚖️
+          </div>
+          <div className="text-center">
+            <p className="text-xl font-bold text-gray-800 mb-1">Regulator</p>
+            <p className="text-sm text-gray-500">
+              Data Protection Board — audit consent records by DPDP Act section
+            </p>
+          </div>
+          <span className="mt-2 px-4 py-1.5 rounded-full bg-violet-600 text-white text-sm font-semibold group-hover:bg-violet-700 transition-colors">
+            Audit Dashboard
           </span>
         </button>
       </div>

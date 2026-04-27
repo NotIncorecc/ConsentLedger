@@ -22,8 +22,14 @@ export function Header({ role, userView, orgView, onUserViewChange, onOrgViewCha
     }
   }
 
-  const isOrg = role === 'org'
-  const accentColor = isOrg ? 'indigo' : 'emerald'
+  const accentColor = role === 'org' ? 'indigo' : role === 'regulator' ? 'violet' : 'emerald'
+
+  const roleBadge =
+    role === 'org'
+      ? { label: '🏥 Org', bg: 'bg-indigo-100', text: 'text-indigo-700' }
+      : role === 'regulator'
+      ? { label: '⚖️ Regulator', bg: 'bg-violet-100', text: 'text-violet-700' }
+      : { label: '👤 User', bg: 'bg-emerald-100', text: 'text-emerald-700' }
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -36,22 +42,19 @@ export function Header({ role, userView, orgView, onUserViewChange, onOrgViewCha
             title="Switch role"
           >
             <span className="text-xl font-bold text-indigo-700">ConsentLedger</span>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-              isOrg
-                ? 'bg-indigo-100 text-indigo-700'
-                : 'bg-emerald-100 text-emerald-700'
-            }`}>
-              {isOrg ? '🏥 Org' : '👤 User'}
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${roleBadge.bg} ${roleBadge.text}`}>
+              {roleBadge.label}
             </span>
           </button>
 
           {/* Nav tabs */}
           <nav className="flex gap-1 ml-3">
-            {isOrg ? (
+            {role === 'org' && (
               <>
                 {([
                   ['request', 'Request Access'],
                   ['granted', 'Granted to Me'],
+                  ['forms', 'Form Builder'],
                 ] as [OrgView, string][]).map(([v, label]) => (
                   <button
                     key={v}
@@ -66,7 +69,8 @@ export function Header({ role, userView, orgView, onUserViewChange, onOrgViewCha
                   </button>
                 ))}
               </>
-            ) : (
+            )}
+            {role === 'user' && (
               <>
                 {([
                   ['grant', 'Grant Consent'],
@@ -86,6 +90,11 @@ export function Header({ role, userView, orgView, onUserViewChange, onOrgViewCha
                 ))}
               </>
             )}
+            {role === 'regulator' && (
+              <span className="px-3 py-1.5 text-sm font-medium text-violet-700">
+                Audit Dashboard
+              </span>
+            )}
           </nav>
         </div>
 
@@ -96,6 +105,8 @@ export function Header({ role, userView, orgView, onUserViewChange, onOrgViewCha
               ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               : accentColor === 'indigo'
               ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+              : accentColor === 'violet'
+              ? 'bg-violet-600 text-white hover:bg-violet-700'
               : 'bg-emerald-600 text-white hover:bg-emerald-700'
           }`}
         >

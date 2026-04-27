@@ -3,8 +3,9 @@ import { useWallet } from '@txnlab/use-wallet-react'
 import { AlgorandClient } from '@algorandfoundation/algokit-utils'
 import { ConsentLedgerClient } from '../contracts/ConsentLedgerClient'
 import { CONFIG } from '../config'
-import { decodeConsentRecord, consentBoxName, parseConsentBoxName, formatExpiry } from '../utils'
+import { decodeConsentRecord, consentBoxName, parseConsentBoxName } from '../utils'
 import type { ConsentRecord } from '../utils'
+import { ConsentCard } from './ConsentCard'
 
 interface ConsentItem {
   assetId: bigint
@@ -140,7 +141,7 @@ export function ActiveConsents() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold">My Consent Tokens</h2>
-          <p className="text-gray-500 text-sm">On-chain consent tokens granted by your wallet</p>
+          <p className="text-gray-500 text-sm">On-chain ZK-committed consent tokens</p>
         </div>
         <button
           onClick={load}
@@ -163,7 +164,9 @@ export function ActiveConsents() {
 
       {!loading && items.length === 0 && !error && (
         <div className="text-center py-12 text-gray-400">
-          No consent tokens found for this wallet.
+          <div className="text-4xl mb-3">🏷️</div>
+          <p className="font-medium">No consent tokens found</p>
+          <p className="text-sm mt-1">Grant consent using the "Grant Consent" tab.</p>
         </div>
       )}
 
@@ -171,82 +174,15 @@ export function ActiveConsents() {
         {items.map((item) => (
           <ConsentCard
             key={item.record.requester}
-            item={item}
-            onRevoke={handleRevoke}
+            record={item.record}
+            assetId={item.assetId}
+            frozen={item.frozen}
+            revoking={item.revoking}
+            revokeTxId={item.revokeTxId}
+            onRevoke={() => handleRevoke(item.record.requester)}
+            showNullifier
           />
         ))}
-      </div>
-    </div>
-  )
-}
-
-function ConsentCard({
-  item,
-  onRevoke,
-}: {
-  item: ConsentItem
-  onRevoke: (requester: string) => void
-}) {
-  const isRevoked = item.frozen
-
-  return (
-    <div
-      className={`rounded-xl border p-5 shadow-sm bg-white ${
-        isRevoked ? 'border-gray-200 opacity-70' : 'border-indigo-100'
-      }`}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span
-              className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
-                isRevoked
-                  ? 'bg-red-100 text-red-700'
-                  : 'bg-green-100 text-green-700'
-              }`}
-            >
-              {isRevoked ? 'Revoked' : 'Active'}
-            </span>
-            <span className="text-xs text-gray-400 font-mono">
-              Token #{item.assetId.toString()}
-            </span>
-          </div>
-
-          <div>
-            <p className="text-xs font-medium text-gray-500 mb-0.5">Granted to Organisation</p>
-            <p className="font-mono text-xs text-gray-800 break-all">{item.record.requester}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-2 text-sm">
-            <div>
-              <span className="font-medium text-gray-600">Data Type:</span>{' '}
-              <span className="text-gray-800 font-semibold">{item.record.dataType}</span>
-            </div>
-            <div>
-              <span className="font-medium text-gray-600">Expires:</span>{' '}
-              <span className="text-gray-800">{formatExpiry(item.record.expiry)}</span>
-            </div>
-            <div className="col-span-2">
-              <span className="font-medium text-gray-600">Purpose:</span>{' '}
-              <span className="text-gray-800">{item.record.purpose}</span>
-            </div>
-          </div>
-
-          {item.revokeTxId && (
-            <p className="text-xs text-gray-400 mt-2">
-              Revoked · TxID: <span className="font-mono">{item.revokeTxId.slice(0, 12)}…</span>
-            </p>
-          )}
-        </div>
-
-        {!isRevoked && (
-          <button
-            onClick={() => onRevoke(item.record.requester)}
-            disabled={item.revoking}
-            className="shrink-0 px-3 py-1.5 text-sm font-semibold text-red-600 border border-red-300 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors"
-          >
-            {item.revoking ? 'Revoking…' : 'Revoke'}
-          </button>
-        )}
       </div>
     </div>
   )

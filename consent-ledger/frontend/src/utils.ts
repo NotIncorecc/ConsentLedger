@@ -1,22 +1,24 @@
 /**
- * Decode an ARC-4 encoded ConsentRecord from box storage.
+ * Decode a Phase-2 ARC-4 ConsentRecord from box storage.
  *
- * Layout (head-tail ABI encoding):
- *   0..31   owner      arc4.Address (32 bytes static)
- *  32..63   requester  arc4.Address (32 bytes static)
- *  64..65   data_type  offset pointer (uint16, big-endian)
- *  66..67   purpose    offset pointer (uint16, big-endian)
- *  68..75   expiry     uint64 (big-endian)
- *  76..83   asset_id   uint64 (big-endian)
- *   tail    arc4.String = uint16 length + UTF-8 bytes
+ * Layout (all static — no offset pointers):
+ *   0..31    owner        arc4.Address (32 bytes)
+ *  32..63    requester    arc4.Address (32 bytes)
+ *  64..95    commitment   uint8[32]    — Poseidon(data_type_hash, purpose_hash, salt)
+ *  96..127   nullifier    uint8[32]    — SHA256(identity_secret || consent_id)
+ * 128..135   expiry       uint64       — Unix timestamp, 0 = no expiry
+ * 136..143   asset_id     uint64
+ *    144     dpdp_section uint8        — 6=§6, 9=§9, 11=§11, 16=§16
+ * Total: 145 bytes
  */
 export interface ConsentRecord {
-  owner: string       // base32 Algorand address
+  owner: string        // base32 Algorand address
   requester: string
-  dataType: string
-  purpose: string
-  expiry: bigint      // 0 = no expiry; otherwise Unix timestamp
+  commitment: string   // hex string (32 bytes)
+  nullifier: string    // hex string (32 bytes)
+  expiry: bigint       // 0 = no expiry; otherwise Unix timestamp
   assetId: bigint
+  dpdpSection: number  // 6 | 9 | 11 | 16
 }
 
 import algosdk from 'algosdk'
@@ -24,27 +26,30 @@ import algosdk from 'algosdk'
 export function decodeConsentRecord(data: Uint8Array): ConsentRecord {
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
 
-  const ownerBytes   = data.slice(0, 32)
-  const reqBytes     = data.slice(32, 64)
-  const dtOffset     = view.getUint16(64, false)
-  const purpOffset   = view.getUint16(66, false)
-  const expiry       = view.getBigUint64(68, false)
-  const assetId      = view.getBigUint64(76, false)
+  const ownerBytes     = data.slice(0, 32)
+  const reqBytes       = data.slice(32, 64)
+  const commitment     = data.slice(64, 96)
+  const nullifier      = data.slice(96, 128)
+  const expiry         = view.getBigUint64(128, false)
+  const assetId        = view.getBigUint64(136, false)
+  const dpdpSection    = data[144] ?? 6
 
-  const dtLen        = view.getUint16(dtOffset, false)
-  const dataType     = new TextDecoder().decode(data.slice(dtOffset + 2, dtOffset + 2 + dtLen))
-
-  const purpLen      = view.getUint16(purpOffset, false)
-  const purpose      = new TextDecoder().decode(data.slice(purpOffset + 2, purpOffset + 2 + purpLen))
+  const toHex = (bytes: Uint8Array) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
 
   return {
-    owner:     algosdk.encodeAddress(ownerBytes),
-    requester: algosdk.encodeAddress(reqBytes),
-    dataType,
-    purpose,
+    owner:        algosdk.encodeAddress(ownerBytes),
+    requester:    algosdk.encodeAddress(reqBytes),
+    commitment:   toHex(commitment),
+    nullifier:    toHex(nullifier),
     expiry,
     assetId,
+    dpdpSection,
   }
+}
+
+/** Short hex of a commitment (first 8 chars + "...") */
+export function shortCommitment(hex: string): string {
+  return hex.slice(0, 8) + '...'
 }
 
 /**

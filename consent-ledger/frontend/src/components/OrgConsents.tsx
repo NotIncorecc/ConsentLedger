@@ -2,9 +2,10 @@ import { useEffect, useState, useCallback } from 'react'
 import { useWallet } from '@txnlab/use-wallet-react'
 import { AlgorandClient } from '@algorandfoundation/algokit-utils'
 import { CONFIG } from '../config'
-import { decodeConsentRecord, parseConsentBoxName, formatExpiry, shortAddr } from '../utils'
+import { decodeConsentRecord, parseConsentBoxName, shortAddr } from '../utils'
 import type { ConsentRecord } from '../utils'
 import type { OrgView } from '../App'
+import { ConsentCard } from './ConsentCard'
 
 interface GrantedConsent {
   assetId: bigint
@@ -13,7 +14,7 @@ interface GrantedConsent {
 }
 
 interface Props {
-  view: OrgView
+  view: Exclude<OrgView, 'forms'>
 }
 
 export function OrgConsents({ view }: Props) {
@@ -207,45 +208,14 @@ export function OrgConsents({ view }: Props) {
 
       <div className="space-y-3">
         {items.map((item) => (
-          <OrgConsentCard key={item.assetId.toString()} item={item} />
+          <ConsentCard
+            key={item.assetId.toString()}
+            record={item.record}
+            assetId={item.assetId}
+            frozen={item.revoked}
+            showNullifier
+          />
         ))}
-      </div>
-    </div>
-  )
-}
-
-function OrgConsentCard({ item }: { item: GrantedConsent }) {
-  const { record, revoked } = item
-
-  return (
-    <div className={`rounded-xl border p-5 shadow-sm bg-white transition-opacity ${revoked ? 'border-gray-200 opacity-60' : 'border-indigo-100'}`}>
-      <div className="flex items-center gap-2 mb-3">
-        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold ${
-          revoked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-        }`}>
-          {revoked ? '✗ Revoked' : '✓ Active'}
-        </span>
-        <span className="text-xs text-gray-400 font-mono">Token #{item.assetId.toString()}</span>
-      </div>
-
-      <div className="mb-3">
-        <p className="text-xs font-medium text-gray-500 mb-0.5">Data Owner (User)</p>
-        <p className="font-mono text-xs text-gray-800 break-all">{record.owner}</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-        <div>
-          <p className="text-xs font-medium text-gray-500">Data Type</p>
-          <p className="text-gray-800 font-semibold">{record.dataType}</p>
-        </div>
-        <div>
-          <p className="text-xs font-medium text-gray-500">Expires</p>
-          <p className="text-gray-800">{formatExpiry(record.expiry)}</p>
-        </div>
-        <div className="col-span-2">
-          <p className="text-xs font-medium text-gray-500">Purpose</p>
-          <p className="text-gray-800">{record.purpose}</p>
-        </div>
       </div>
     </div>
   )
