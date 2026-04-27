@@ -215,6 +215,11 @@ algokit generate client \
   --output frontend/src/contracts/ConsentLedgerClient.ts
 
 # 4. Update frontend/.env with the new app_id and app_address
+VITE_APP_ID=<VITE_APP_ID>
+VITE_APP_ADDRESS=<VITE_APP_ADDRESS>
+
+# 5. Start backend
+cd consent-ledger/backend && uvicorn main:app --reload --port 8000
 ```
 
 ---
