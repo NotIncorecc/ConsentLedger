@@ -108,16 +108,30 @@ interface TxResult {
   assetId: string
 }
 
+function parseFormFromUrl(): OrgForm | null {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const encoded = params.get('form')
+    if (!encoded) return null
+    return JSON.parse(atob(encoded)) as OrgForm
+  } catch {
+    return null
+  }
+}
+
 export function ZKConsentFlow() {
   const { transactionSigner, activeAddress, wallets } = useWallet()
   const peraWallet = wallets[0]
+
+  // Detect a form shared via URL (from OrgFormBuilder "Share Form")
+  const [urlForm] = useState<OrgForm | null>(() => parseFormFromUrl())
 
   // State
   const [step, setStep] = useState<Step>('identity')
   const [identitySecret, setIdentitySecret] = useState<string | null>(null)
   const [orgAddress, setOrgAddress] = useState('')
-  const [selectedForm, setSelectedForm] = useState<OrgForm>(FORM_TEMPLATES[1]) // Standard KYC
-  const [selectedDpdpSection, setSelectedDpdpSection] = useState<number>(6)
+  const [selectedForm, setSelectedForm] = useState<OrgForm>(() => urlForm ?? FORM_TEMPLATES[1])
+  const [selectedDpdpSection, setSelectedDpdpSection] = useState<number>(() => (urlForm ?? FORM_TEMPLATES[1]).dpdpSection)
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
   const [proofSteps, setProofSteps] = useState<ProofStepState[]>([])
   const [result, setResult] = useState<TxResult | null>(null)
@@ -347,25 +361,33 @@ export function ZKConsentFlow() {
               />
             </div>
 
-            {/* Form template selector */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Consent Form</label>
-              <select
-                value={selectedForm.id}
-                onChange={(e) => {
-                  const f = FORM_TEMPLATES.find((t) => t.id === e.target.value) ?? FORM_TEMPLATES[0]
-                  setSelectedForm(f)
-                  setSelectedDpdpSection(f.dpdpSection)
-                  setFieldValues({})
-                }}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              >
-                {FORM_TEMPLATES.filter((t) => t.id !== 'custom').map((t) => (
-                  <option key={t.id} value={t.id}>{t.formName}</option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-400 mt-1">{selectedForm.description}</p>
-            </div>
+            {/* Form template selector — hidden when a custom form is shared via URL */}
+            {urlForm ? (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-1">Form shared by organisation</p>
+                <p className="text-sm font-bold text-indigo-900">{urlForm.formName}</p>
+                <p className="text-xs text-indigo-700 mt-0.5">{urlForm.description}</p>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Consent Form</label>
+                <select
+                  value={selectedForm.id}
+                  onChange={(e) => {
+                    const f = FORM_TEMPLATES.find((t) => t.id === e.target.value) ?? FORM_TEMPLATES[0]
+                    setSelectedForm(f)
+                    setSelectedDpdpSection(f.dpdpSection)
+                    setFieldValues({})
+                  }}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                >
+                  {FORM_TEMPLATES.filter((t) => t.id !== 'custom').map((t) => (
+                    <option key={t.id} value={t.id}>{t.formName}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">{selectedForm.description}</p>
+              </div>
+            )}
 
             {/* DPDP Section */}
             <div>

@@ -139,6 +139,68 @@ async def generate_nullifier_proof(req: NullifierProofRequest):
 # ──────────────────────── On-chain submission ──────────────────────────────
 
 
+class SetMembershipRequest(BaseModel):
+    field: str
+    value: str
+    allowed_values: list[str]
+    salt: str
+
+
+class HashEqualityRequest(BaseModel):
+    field: str
+    value: str
+    salt: str
+
+
+@router.post(
+    "/set-membership",
+    response_model=ProofResponse,
+    summary="Simulate set-membership proof (stub — returns mock commitment)",
+)
+async def generate_set_membership_proof(req: SetMembershipRequest):
+    """
+    Stub: proves value ∈ allowed_set without a dedicated gnark circuit.
+    Falls back to consent_commitment simulation so the API surface is complete.
+    """
+    import hashlib, secrets
+    proof_hash = hashlib.sha256(f"{req.field}:{req.value}:{req.salt}".encode()).hexdigest()
+    commitment = hashlib.sha256(f"commit:{req.field}:{','.join(req.allowed_values)}:{req.salt}".encode()).hexdigest()
+    nullifier = secrets.token_hex(32)
+    return ProofResponse(
+        circuit="set_membership",
+        proof_hash=proof_hash,
+        commitment=commitment,
+        nullifier=nullifier,
+        public_inputs={"field": req.field, "allowed_values": req.allowed_values},
+        is_simulation=True,
+    )
+
+
+@router.post(
+    "/hash-equality",
+    response_model=ProofResponse,
+    summary="Simulate hash-equality proof (stub — returns mock commitment)",
+)
+async def generate_hash_equality_proof(req: HashEqualityRequest):
+    """
+    Stub: proves SHA256(secret_value) = commitment without revealing the value.
+    Uses SHA-256 directly as a simulation fallback.
+    """
+    import hashlib, secrets
+    commitment = hashlib.sha256(f"{req.field}:{req.value}:{req.salt}".encode()).hexdigest()
+    proof_hash = hashlib.sha256(f"proof:{commitment}".encode()).hexdigest()
+    nullifier = secrets.token_hex(32)
+    return ProofResponse(
+        circuit="hash_equality",
+        proof_hash=proof_hash,
+        commitment=commitment,
+        nullifier=nullifier,
+        public_inputs={"field": req.field},
+        is_simulation=True,
+    )
+
+
+
 @router.post(
     "/submit-on-chain",
     response_model=SubmitProofOnChainResponse,

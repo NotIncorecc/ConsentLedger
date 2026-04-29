@@ -18,7 +18,9 @@ export type UserView = 'grant' | 'consents'
 export type OrgView = 'request' | 'granted' | 'forms'
 
 function App() {
-  const [role, setRole] = React.useState<Role | null>(null)
+  // Auto-select 'user' role when a shared form URL is opened
+  const hasFormParam = new URLSearchParams(window.location.search).has('form')
+  const [role, setRole] = React.useState<Role | null>(hasFormParam ? 'user' : null)
   const [userView, setUserView] = React.useState<UserView>('grant')
   const [orgView, setOrgView] = React.useState<OrgView>('request')
 
