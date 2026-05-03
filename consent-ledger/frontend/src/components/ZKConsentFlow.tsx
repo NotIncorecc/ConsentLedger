@@ -274,6 +274,7 @@ export function ZKConsentFlow() {
         boxReferences: [
           { appId: CONFIG.APP_ID, name: consentBoxName(activeAddress, orgAddress.trim()) },
         ],
+        validityWindow: 200,
       })
 
       updateStep(submitIdx, { status: 'done', label: 'Consent granted on-chain' })
